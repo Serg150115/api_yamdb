@@ -64,29 +64,6 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
-class TitleSerializer(serializers.ModelSerializer):
-    category = serializers.SlugRelatedField(
-        slug_field='slug',
-        queryset=Category.objects.all()
-    )
-    genre = serializers.SlugRelatedField(
-        many=True,
-        slug_field='slug',
-        queryset=Genre.objects.all(),
-    )
-
-    class Meta:
-        model = Title
-        fields = (
-            'id',
-            'name',
-            'year',
-            'description',
-            'genre',
-            'category'
-        )
-
-
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
@@ -139,14 +116,32 @@ class TitleReadSerializer(serializers.ModelSerializer):
 class TitleWriteSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
-        slug_field='slug'
+        slug_field='slug',
+        required=True
     )
     genre = serializers.SlugRelatedField(
         queryset=Genre.objects.all(),
         slug_field='slug',
-        many=True
+        many=True,
+        required=True
     )
 
     class Meta:
         fields = '__all__'
         model = Title
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['genre'] = [
+            {
+                'name': Genre.objects.get(slug=slug).name,
+                'slug': slug
+            } for slug in representation['genre']
+        ]
+        representation['category'] = {
+            'name': Category.objects.get(
+                slug=representation['category']
+            ).name,
+            'slug': representation['category']
+        }
+        return representation
