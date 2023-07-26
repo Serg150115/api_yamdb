@@ -1,3 +1,4 @@
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
@@ -130,6 +131,14 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         fields = '__all__'
         model = Title
 
+    @staticmethod
+    def get_rating(instance):
+        reviews = instance.reviews.all()
+        if reviews.exists():
+            rating = reviews.aggregate(Avg('score'))['score__avg']
+            return round(rating)
+        return 0
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['genre'] = [
@@ -144,4 +153,5 @@ class TitleWriteSerializer(serializers.ModelSerializer):
             ).name,
             'slug': representation['category']
         }
+        representation['rating'] = TitleWriteSerializer.get_rating(instance)
         return representation
